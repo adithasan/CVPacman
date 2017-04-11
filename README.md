@@ -4,3 +4,4 @@ This is variation of Pacman that uses computer vision to track movements of a sm
 The project is coded in Python3 and OpenCV and pygame are the major non-standard libraries used.
 
 
+I did this as a project for my tangible computing course at the University of Alberta. My partner Du Quifeng helped me with the game mechanics while I focused on the computer vision aspect. 
