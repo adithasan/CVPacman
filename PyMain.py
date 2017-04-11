@@ -4,14 +4,13 @@ import pygame
 from pygame.locals import *
 from helpers import *
 import game_level
-import base_level
 import basicSprite
-from characterSprite import*
-from basicMonster import*
+from characterClass import*
 import numpy as np
 import cv2
 import imutils
 from collections import deque
+
 
 if not pygame.font:
     print("Warning, fonts disabled")
