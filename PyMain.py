@@ -4,7 +4,6 @@ import pygame
 from pygame.locals import *
 from helpers import *
 import game_level
-import basicSprite
 from characterClass import*
 import numpy as np
 import cv2
@@ -31,10 +30,19 @@ direction_deque = deque(maxlen=10)
 
 
 class PacmanMain:
-
+    '''This is the main class of the whole game. This class combined all the sub-class made in
+    other different files. This class recognizes the status of each sub-class and using the
+    result of the recognization to perform different actions. This class will do all the
+    main control and the drawing part of the game.
+    '''
     def __init__(self, width=640, height=480):
-        '''Initialize
-        Initialize PyGame'''
+        '''This function initialize the bacground and the windows of the game
+
+        Parameters:
+        self = the whole game itself
+        width = the width of the game window
+        height = the height of the game window
+        '''
         pygame.init()
         # set window size
         self.width = width
@@ -43,7 +51,13 @@ class PacmanMain:
         self.screen = pygame.display.set_mode((self.width, self.height))
 
     def MainLoop(self):
-        '''The main loop of the game'''
+        '''This is main loop of the game. This function recognize and update
+        the status of the whole game. At the end of the function, the drawing
+        part of the game was also applied
+
+        Parameter:
+        self = whole game itself.
+        '''
         direction = "ND"
         frame_counter = 0
         self.LoadSprites()
@@ -83,22 +97,36 @@ class PacmanMain:
 
             if type(center) == tuple:
                 pts.appendleft(center)
+
+            # Redraw the background over the sprite.
             self.character_sprites.clear(self.screen, self.background)
             self.monster_sprites.clear(self.screen, self.background)
+
+            # Check the event in queue, get the status of the game
+            # Also check the status of the character
             for event in pygame.event.get():
+                # When the state is quit, exist the game
                 if event.type == pygame.QUIT:
                     sys.exit()
+                # When character has been eaten
+                elif event.type == SNAKE_EATEN:
+                    print("Game Over")
+                    print("Your Score is:", self.character.pellets)
+                    sys.exit()
+                # Contradicts to the SUPER_STATE_OVER. At this state, character
+                # could eat the monster, and the monster state is weak
+                elif event.type == SUPER_STATE_START:
+                    for monster in self.monster_sprites.sprites():
+                        monster.weakMon(True)
+                # When the state is SUPER_STATE_OVER, set the character to
+                # normal state, and let the character.superState be False
+                # and set the monsters to be strong enough to eat the character
                 elif event.type == SUPER_STATE_OVER:
                     self.character.superState = False
                     pygame.time.set_timer(SUPER_STATE_OVER, 0)
                     for monster in self.monster_sprites.sprites():
                         monster.weakMon(False)
-                elif event.type == SUPER_STATE_START:
-                    for monster in self.monster_sprites.sprites():
-                        monster.weakMon(True)
-                elif event.type == SNAKE_EATEN:
-                    print("DEAD")
-                    sys.exit()
+
             print(len(pts))
             if len(pts) == 12:
                 temp_direction = translation(pts[0], pts[len(pts) - 1])
@@ -124,29 +152,50 @@ class PacmanMain:
                 frame_counter += 1
 
             direction = "ND"
+            # RenderUpdates sub-class that draws Sprites in order of addition
             self.character_sprites.update(
                 self.brick_sprites, self.pellet_sprites, self.monster_sprites, self.big_pellet_sprites)
             self.monster_sprites.update(self.brick_sprites)
 
             # col_list = pygame.sprite.spritecollide(self.character, self.pellet_sprites, True)
             # self.character.pellets = self.character.pellets + len(col_list)
+
+            # Drawing part
             self.screen.blit(self.background, (0, 0))
             if pygame.font:
-                font = pygame.font.Font(None, 36)
+                # this gives the front size of the text that showing the score
+                font = pygame.font.Font(None, 50)
+                # What is the containt of the text and what is the position of the front
                 text = font.render("Pellets {}".format(
                     self.character.pellets), 1, (255, 0, 0))
+                # position is in the mide area
                 textpos = text.get_rect(centerx=(self.width / 2))
                 self.screen.blit(text, textpos)
+            # Make the changing portion of the game into a list and update the changing
+            # portion each time only
+            # instead of using pygame.display.flip() -- update the whole screen each time
+            # this time we only need to update the portion of the screen
+            show_list = [textpos]
+            show_list += self.pellet_sprites.draw(self.screen)
+            show_list += self.big_pellet_sprites.draw(self.screen)
+            show_list += self.character_sprites.draw(self.screen)
+            show_list += self.monster_sprites.draw(self.screen)
+            pygame.display.update(show_list)
 
-            reclist = [textpos]
-            reclist += self.pellet_sprites.draw(self.screen)
-            reclist += self.big_pellet_sprites.draw(self.screen)
-            reclist += self.character_sprites.draw(self.screen)
-            reclist += self.monster_sprites.draw(self.screen)
-            pygame.display.update(reclist)
 
     def LoadSprites(self):
-        '''Load the sprites we need'''
+        '''In this Funstion, all the sub-images should be loaded. Corresponding to the layout
+        in game_level file, different sub-images should be loaded in different position at the initial
+        condition. This function recognize which sub-images should be loaded where. This function also
+        needs to create different groups for the different characters. These groups are needed in the
+        main loop fucntion
+
+        Parameter:
+        self = the whole game it self.
+
+        Create:
+        different groups of characters: the name should follow the rules: self.'name'_sprites
+        layout the game in initial condition'''
         # calculate the center point offset
         x_offset = (BLOCK_SIZE / 2)
         y_offset = (BLOCK_SIZE / 2)
@@ -197,8 +246,17 @@ class PacmanMain:
 
 
 class Pellet(pygame.sprite.Sprite):
-
+    '''This is one of the sub-class. This class create the pellet. Since the pellets
+    should not move the whole time, the class is comparativly easy. This sub-class
+    load the images of the pellet and set the rect of the image.
+    '''
     def __init__(self, rect=None):
+        '''Initializing the information for the pellets.
+
+        Parameters:
+        self = pellet itself
+        rect = the rect of the imag. Could let us put the pellet whereever we want
+        '''
         pygame.sprite.Sprite.__init__(self)
         self.image, self.rect = load_image('pellet.png', -1)
         #self.image = pygame.image.load('pellet.png')
@@ -236,6 +294,7 @@ def translation(first_coord, second_coord):
 
 
 if __name__ == "__main__":
+    '''Main function of the game'''
     MainWindow = PacmanMain(500, 575)
     MainWindow.MainLoop()
     cap.release()
