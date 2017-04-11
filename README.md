@@ -6,4 +6,5 @@ The project is coded in Python3 and OpenCV and pygame are the major non-standard
 
 I did this as a project for my tangible computing course at the University of Alberta. My partner Du Quifeng helped me with the game mechanics while I focused on the computer vision aspect. 
 
-https://github.com/adithasan/CVPacman/blob/master/Screen%20Shot%202017-04-10%20at%206.49.06%20PM.png
+
+![Settings Window](https://github.com/adithasan/CVPacman/blob/master/Screen%20Shot%202017-04-10%20at%206.49.06%20PM.png)
