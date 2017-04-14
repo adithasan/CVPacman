@@ -70,6 +70,8 @@ class PacmanMain:
         self.brick_sprites.draw(self.screen)
         self.brick_sprites.draw(self.background)
         pygame.display.flip()
+        # grabs a frame from the video camera and processes it to make it run faster
+        # reduces resolution and removes imperfections
         while True:
             grabbed, frame = cap.read()
             frame = imutils.resize(frame, width=600)
@@ -78,11 +80,13 @@ class PacmanMain:
             mask = cv2.inRange(hsv, greenLower, greenUpper)
             mask = cv2.erode(mask, None, iterations=2)
             mask = cv2.dilate(mask, None, iterations=2)
-
+            
+            #finds any green object in the frame
             coords = cv2.findContours(
                 mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
             center = None
-
+            
+            #if there are more than one detected object pick the biggest
             if len(coords) > 0:
                 circle_1 = max(coords, key=cv2.contourArea)
                 ((x, y), radius) = cv2.minEnclosingCircle(circle_1)
@@ -94,7 +98,7 @@ class PacmanMain:
                     cv2.circle(frame, (int(x), int(y)),
                                int(radius), (0, 255, 255), 2)
                     cv2.circle(frame, center, 5, (0, 0, 255), -1)
-
+            #only add acceptable centres of objects to the deque
             if type(center) == tuple:
                 pts.appendleft(center)
 
@@ -127,7 +131,8 @@ class PacmanMain:
                     for monster in self.monster_sprites.sprites():
                         monster.weakMon(False)
 
-            print(len(pts))
+            #if we have a full deque then determine a direction and add
+            # to the direction deque
             if len(pts) == 12:
                 temp_direction = translation(pts[0], pts[len(pts) - 1])
                 print(temp_direction)
@@ -136,7 +141,10 @@ class PacmanMain:
                     direction_deque.appendleft(direction)
 
 
-
+            # the direction deque and frame counters are attempts to smoothen the inputs
+            # and eliminate unintentional movements from the player
+            # only deliberate motions are accepted, the numbers have been chosen
+            # from trial and error offering the best results
             if len(direction_deque) == 10 and all(x == direction_deque[0] for x in direction_deque) and frame_counter == 3:
                 if (direction_deque[0] == "Up"):
                     self.character.MoveKeyDown(K_UP)
@@ -156,10 +164,7 @@ class PacmanMain:
             self.character_sprites.update(
                 self.brick_sprites, self.pellet_sprites, self.monster_sprites, self.big_pellet_sprites)
             self.monster_sprites.update(self.brick_sprites)
-
-            # col_list = pygame.sprite.spritecollide(self.character, self.pellet_sprites, True)
-            # self.character.pellets = self.character.pellets + len(col_list)
-
+            
             # Drawing part
             self.screen.blit(self.background, (0, 0))
             if pygame.font:
@@ -171,9 +176,7 @@ class PacmanMain:
                 # position is in the mide area
                 textpos = text.get_rect(centerx=(self.width / 2))
                 self.screen.blit(text, textpos)
-            # Make the changing portion of the game into a list and update the changing
-            # portion each time only
-            # instead of using pygame.display.flip() -- update the whole screen each time
+            
             # this time we only need to update the portion of the screen
             show_list = [textpos]
             show_list += self.pellet_sprites.draw(self.screen)
@@ -184,7 +187,7 @@ class PacmanMain:
 
 
     def LoadSprites(self):
-        '''In this Funstion, all the sub-images should be loaded. Corresponding to the layout
+        '''In this Function, all the sub-images should be loaded. Corresponding to the layout
         in game_level file, different sub-images should be loaded in different position at the initial
         condition. This function recognize which sub-images should be loaded where. This function also
         needs to create different groups for the different characters. These groups are needed in the
@@ -266,7 +269,10 @@ class Pellet(pygame.sprite.Sprite):
 
 
 def translation(first_coord, second_coord):
-    '''Calculates the direction of motion
+    '''Calculates the direction of motion. A deque is used for the coordinates
+        so that the function only detects the general direction of movement
+        and can interpret movements that are not completely verical or 
+        horizontal
 
         Arguments: Two center variables used to determine direction of motion
 
